@@ -31,14 +31,14 @@ import {
 // Αντικατέστησε ΟΛΟ το αντικείμενο παρακάτω με το δικό σου:
 // ============================================================
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID",
+  apiKey: "AIzaSyDyui8-wJrZo1kv_O-bOMP8wqtMupPt7qI",
+  authDomain: "world-cup-predictions-2026-1.firebaseapp.com",
+  projectId: "world-cup-predictions-2026-1",
+  storageBucket: "world-cup-predictions-2026-1.firebasestorage.app",
+  messagingSenderId: "463558998883",
+  appId: "1:463558998883:web:2239a054323553a67b7156",
+  measurementId: "G-CF3H7ZESHR"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
