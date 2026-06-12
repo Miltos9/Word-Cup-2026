@@ -143,6 +143,7 @@ function teamInfo(name) {
 
 // ---------- State ----------
 let currentUser = null;
+let isAllowedUser = false; // υπάρχει στο allowlist/{email};
 let matches = []; // [{id, ...data}]
 let myPredictions = {}; // matchId -> prediction data
 
@@ -197,17 +198,55 @@ onAuthStateChanged(auth, async (user) => {
   const loggedIn = !!user;
   $("#login-btn").hidden = loggedIn;
   $("#user-chip").hidden = !loggedIn;
-  $("#login-hint").hidden = loggedIn;
 
   if (loggedIn) {
     $("#user-avatar").src = user.photoURL || "";
     $("#user-name").textContent = user.displayName || "Παίκτης";
-    await ensureUserDoc(user);
-    await loadMyPredictions();
+    isAllowedUser = await checkAllowlist(user.email);
+    if (isAllowedUser) {
+      // Μόνο για χρήστες του allowlist — αλλιώς τα rules απορρίπτουν το write
+      await ensureUserDoc(user);
+      await loadMyPredictions();
+    }
   } else {
+    isAllowedUser = false;
     myPredictions = {};
   }
+  updateAccessBanner();
   renderMatches();
+});
+
+// ---------- Allowlist (access control) ----------
+// Doc id = email σε lowercase. Το collection το διαχειρίζεται ΜΟΝΟ ο
+// διαχειριστής από το Firebase Console — κανένα write από client.
+async function checkAllowlist(email) {
+  if (!email) return false;
+  try {
+    const snap = await getDoc(doc(db, "allowlist", email.toLowerCase()));
+    return snap.exists();
+  } catch (err) {
+    console.error("checkAllowlist:", err);
+    return false;
+  }
+}
+
+function updateAccessBanner() {
+  const banner = $("#access-banner");
+  if (currentUser && !isAllowedUser) {
+    $("#my-email").textContent = currentUser.email || "";
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
+}
+
+$("#copy-email-btn").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(currentUser?.email || "");
+    showToast("Το email αντιγράφηκε! 📋", "success");
+  } catch {
+    showToast("Δεν ήταν δυνατή η αντιγραφή.", "error");
+  }
 });
 
 // Δημιουργεί/ενημερώνει το users/{uid}. Το totalPoints το γράφει ΜΟΝΟ
@@ -420,8 +459,14 @@ function buildMatchCard(m) {
 
     const saveBtn = document.createElement("button");
     saveBtn.className = "btn btn-save";
-    saveBtn.textContent = pred ? "💾 Ενημέρωση πρόβλεψης" : "💾 Αποθήκευση πρόβλεψης";
-    saveBtn.addEventListener("click", () => savePrediction(m, card, saveBtn));
+    if (currentUser && !isAllowedUser) {
+      // Συνδεδεμένος αλλά εκτός allowlist: βλέπει τα πάντα, δεν αποθηκεύει
+      saveBtn.disabled = true;
+      saveBtn.textContent = "🔑 Χωρίς πρόσβαση ακόμα";
+    } else {
+      saveBtn.textContent = pred ? "💾 Ενημέρωση πρόβλεψης" : "💾 Αποθήκευση πρόβλεψης";
+      saveBtn.addEventListener("click", () => savePrediction(m, card, saveBtn));
+    }
     form.appendChild(saveBtn);
   }
 
@@ -430,10 +475,6 @@ function buildMatchCard(m) {
 
 // ---------- Αποθήκευση πρόβλεψης ----------
 async function savePrediction(m, card, saveBtn) {
-  if (!currentUser) {
-    showToast("Συνδέσου πρώτα με Google για να παίξεις!", "error");
-    return;
-  }
   if (isLocked(m)) {
     showToast("Το ματς έχει ξεκινήσει — κλειδωμένο! 🔒", "error");
     return;
@@ -459,6 +500,31 @@ async function savePrediction(m, card, saveBtn) {
     return;
   }
 
+  // Login on demand: ζητάμε σύνδεση ΜΟΝΟ τη στιγμή της αποθήκευσης.
+  // Οι τιμές της φόρμας έχουν ήδη διαβαστεί, οπότε δεν χάνονται από
+  // το re-render που προκαλεί το onAuthStateChanged.
+  if (!currentUser) {
+    try {
+      saveBtn.disabled = true;
+      saveBtn.textContent = "🔐 Σύνδεση…";
+      const cred = await signInWithPopup(auth, provider);
+      currentUser = cred.user;
+      isAllowedUser = await checkAllowlist(cred.user.email);
+      updateAccessBanner();
+    } catch (err) {
+      console.error(err);
+      showToast("Η σύνδεση απέτυχε. Δοκίμασε ξανά.", "error");
+      saveBtn.disabled = false;
+      saveBtn.textContent = "💾 Αποθήκευση πρόβλεψης";
+      return;
+    }
+  }
+  if (!isAllowedUser) {
+    showToast("Ο λογαριασμός σου δεν έχει πρόσβαση ακόμα. 🔑", "error");
+    renderMatches(); // δείχνει τα disabled κουμπιά + banner
+    return;
+  }
+
   saveBtn.disabled = true;
   saveBtn.textContent = "⏳ Αποθήκευση…";
   try {
@@ -477,6 +543,9 @@ async function savePrediction(m, card, saveBtn) {
     myPredictions[m.id] = { userId: currentUser.uid, matchId: m.id, htPick, ftPick, scoreHome, scoreAway, points: existing?.points ?? null };
     showToast("Η πρόβλεψη αποθηκεύτηκε! ⚽🎉", "success");
     saveBtn.textContent = "💾 Ενημέρωση πρόβλεψης";
+    // Re-render ώστε η κάρτα να δείξει την αποθηκευμένη πρόβλεψη ακόμα
+    // κι αν μεσολάβησε login (που είχε ξανασχεδιάσει τη λίστα)
+    renderMatches();
   } catch (err) {
     console.error(err);
     showToast("Σφάλμα αποθήκευσης. Μήπως ξεκίνησε το ματς;", "error");

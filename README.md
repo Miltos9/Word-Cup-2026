@@ -156,8 +156,26 @@ firebase deploy --only firestore:rules
 ## 🔐 Ασφάλεια (firestore.rules)
 
 - `matches`: read για όλους, write **μόνο** από το service account (το admin SDK παρακάμπτει τα rules).
-- `users`: read για όλους (leaderboard). Ο χρήστης γράφει μόνο το δικό του `displayName`/`photoURL` — **ποτέ** το `totalPoints`.
-- `predictions`: read για συνδεδεμένους χρήστες. Write μόνο στη δική σου πρόβλεψη (`uid_matchId`), **μόνο** όσο `matches.utcDate > τώρα` (server-side έλεγχος — δεν κλειδώνει απλώς το UI), και το πεδίο `points` δεν αλλάζει ποτέ από client.
+- `users`: read για όλους (leaderboard). Ο χρήστης γράφει μόνο το δικό του `displayName`/`photoURL` — **ποτέ** το `totalPoints` — και μόνο αν είναι στο allowlist.
+- `predictions`: read για συνδεδεμένους χρήστες. Write μόνο στη δική σου πρόβλεψη (`uid_matchId`), μόνο αν είσαι στο **allowlist**, **μόνο** όσο `matches.utcDate > τώρα` (server-side έλεγχος — δεν κλειδώνει απλώς το UI), και το πεδίο `points` δεν αλλάζει ποτέ από client.
+- `allowlist`: read για συνδεδεμένους, **κανένα** write από client — το διαχειρίζεσαι μόνο εσύ από το Console (δες παρακάτω).
+
+## 🔑 Πώς δίνω πρόσβαση σε παίκτη (allowlist)
+
+Το app έχει access control με βάση το email: όποιος συνδεθεί με Google βλέπει κανονικά ματς και βαθμολογία, αλλά για να **αποθηκεύσει προβλέψεις** πρέπει το email του να υπάρχει στο collection `allowlist`. Αν δεν υπάρχει, το app του δείχνει μήνυμα με το email του και κουμπί αντιγραφής, για να σου το στείλει.
+
+**Βήματα (Firebase Console):**
+
+1. Firebase Console → **Build → Firestore Database** → tab **Data**.
+2. Πάτα **Start collection** (ή **Add collection** αν υπάρχουν ήδη) και δώσε Collection ID: `allowlist` (ακριβώς έτσι, με μικρά).
+3. Στο **Document ID** βάλε το email του παίκτη **σε lowercase**, π.χ. `giorgos@gmail.com`.
+   ⚠️ ΟΧΙ κεφαλαία και χωρίς κενά — πρέπει να ταιριάζει ακριβώς με το email του Google λογαριασμού.
+4. Το Console απαιτεί τουλάχιστον ένα πεδίο: πρόσθεσε π.χ. field `addedAt` (type: string) με τιμή την ημερομηνία. Το περιεχόμενο δεν έχει σημασία — μετράει μόνο ότι το doc **υπάρχει**.
+5. **Save**. Από την επόμενη στιγμή ο παίκτης μπορεί να αποθηκεύει προβλέψεις (αν είναι ήδη μέσα στο app, αρκεί ένα refresh).
+
+Για νέους παίκτες: επαναλαμβάνεις τα βήματα 3-5 με **Add document** μέσα στο `allowlist`. Για να κόψεις πρόσβαση, διαγράφεις το αντίστοιχο document.
+
+> 💡 Μην ξεχάσεις να προσθέσεις και το **δικό σου** email στο allowlist — αλλιώς ούτε εσύ θα μπορείς να παίξεις! Σημ.: τα rules απαιτούν και `email_verified` — με Google sign-in αυτό είναι πάντα αληθές, οπότε δεν χρειάζεται καμία ενέργεια.
 
 ## 🧪 Τοπικό τρέξιμο του sync (προαιρετικό)
 
@@ -175,6 +193,7 @@ node scripts/sync.js
 |---|---|
 | `auth/unauthorized-domain` στη σύνδεση | Πρόσθεσε `<USERNAME>.github.io` στα Authorized domains (Βήμα 3) |
 | "Σφάλμα αποθήκευσης" στο app | Έλεγξε ότι έγινε publish το `firestore.rules` (Βήμα 5) και ότι το ματς δεν έχει ξεκινήσει |
+| Κουμπί "🔑 Χωρίς πρόσβαση ακόμα" | Το email του χρήστη δεν είναι στο `allowlist` — δες την ενότητα "Πώς δίνω πρόσβαση σε παίκτη" |
 | Δεν φαίνονται ματς | Τρέξε χειροκίνητα το workflow (Βήμα 10) και δες τα logs του |
 | Workflow κόκκινο: `Λείπουν τα env vars` | Έλεγξε ονόματα/τιμές των δύο secrets (Βήμα 8) |
 | Το cron δεν τρέχει ακριβώς κάθε 30' | Φυσιολογικό — το GitHub μπορεί να καθυστερεί τα scheduled runs σε ώρες αιχμής |

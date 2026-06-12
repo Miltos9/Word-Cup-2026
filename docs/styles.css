@@ -1,25 +1,35 @@
 /* ============================================================
    Μουντιάλ 2026 — Προβλέψεις
-   Θέμα: ζεστά χρώματα (ηλιοβασίλεμα), glassmorphism, mobile-first
+   Θέμα: παλέτα FIFA World Cup 26 ("We Are 26") — χρυσό τρόπαιο +
+   πράσινο γήπεδο σε σκούρο φόντο. Glassmorphism, mobile-first.
    ============================================================ */
 
 :root {
-  --bg-1: #1a0b2e;
-  --bg-2: #3b1340;
-  --bg-3: #7a1f3d;
-  --accent: #ffb703;
-  --accent-2: #fb8500;
-  --accent-3: #ff5d8f;
-  --text: #fff7ed;
-  --text-dim: #e8d8c3;
-  --glass: rgba(255, 255, 255, 0.08);
-  --glass-strong: rgba(255, 255, 255, 0.13);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --success: #4ade80;
-  --error: #f87171;
-  --lock: #94a3b8;
+  /* Κύρια παλέτα WC26 */
+  --bg-dark: #0A1712;   /* βαθύ σκούρο πρασινωπό — κύριο φόντο */
+  --bg-card: #11241C;   /* κάρτες, λίγο πιο ανοιχτό */
+  --gold: #E7B53C;      /* χρυσό τρόπαιο — κύριο accent */
+  --gold-light: #F2CE6B;
+  --gold-dark: #1A1206; /* σκούρο κείμενο πάνω σε χρυσά κουμπιά */
+  --green: #00A651;     /* ζωντανό πράσινο — επιτυχίες/θετικά */
+  --text: #F5F3EC;      /* σπασμένο λευκό */
+  --muted: #9DB0A6;     /* δευτερεύον κείμενο */
+  /* Πολύχρωμες πινελιές — ΜΟΝΟ για μικρά highlights/badges */
+  --magenta: #E6007E;
+  --blue: #0066B3;
+  --red: #E4002B;
+  /* Aliases για να δουλεύει όλο το υπάρχον CSS */
+  --accent: var(--gold);
+  --text-dim: var(--muted);
+  --success: var(--green);
+  --error: var(--red);
+  --lock: var(--muted);
+  --glass: rgba(245, 243, 236, 0.06);
+  --glass-strong: rgba(245, 243, 236, 0.11);
+  --glass-border: rgba(245, 243, 236, 0.16);
+  --card-glass: rgba(17, 36, 28, 0.6); /* --bg-card με διαφάνεια για glassmorphism */
   --radius: 18px;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,7 +40,8 @@ body {
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--text);
   min-height: 100vh;
-  background: linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 45%, var(--bg-3) 100%) fixed;
+  /* Σκούρο πρασινο-χρυσό gradient αντί για sunset */
+  background: linear-gradient(160deg, var(--bg-dark) 0%, var(--bg-card) 50%, #182B16 100%) fixed;
   padding: 14px;
   max-width: 760px;
   margin: 0 auto;
@@ -46,8 +57,8 @@ body {
   pointer-events: none;
   z-index: -1;
 }
-.bg-glow-1 { width: 380px; height: 380px; background: var(--accent-2); top: -120px; right: -100px; }
-.bg-glow-2 { width: 320px; height: 320px; background: var(--accent-3); bottom: -100px; left: -120px; }
+.bg-glow-1 { width: 380px; height: 380px; background: var(--gold); top: -120px; right: -100px; opacity: 0.18; }
+.bg-glow-2 { width: 320px; height: 320px; background: var(--green); bottom: -100px; left: -120px; opacity: 0.16; }
 
 /* ---------- Glassmorphism βάση ---------- */
 .glass {
@@ -80,7 +91,7 @@ body {
 }
 .brand-text h1 { font-size: 1.35rem; font-weight: 900; letter-spacing: 0.5px; }
 .brand-text .accent {
-  background: linear-gradient(90deg, var(--accent), var(--accent-3));
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -119,7 +130,16 @@ body {
 .btn:active:not(:disabled) { transform: translateY(0); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-.btn-google { background: #fff; color: #333; }
+/* Μικρό, διακριτικό κουμπί σύνδεσης πάνω δεξιά */
+.btn-google {
+  background: var(--glass-strong);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.btn-google:hover:not(:disabled) { border-color: var(--gold); }
 .btn-ghost {
   background: transparent;
   color: var(--text-dim);
@@ -129,9 +149,10 @@ body {
 .btn-save {
   width: 100%;
   justify-content: center;
-  background: linear-gradient(90deg, var(--accent-2), var(--accent-3));
-  color: #fff;
-  box-shadow: 0 4px 18px rgba(251, 133, 0, 0.4);
+  /* CTA: χρυσό με σκούρο κείμενο για καλό contrast */
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  color: var(--gold-dark);
+  box-shadow: 0 4px 18px rgba(231, 181, 60, 0.35);
   margin-top: 12px;
 }
 
@@ -159,9 +180,9 @@ body {
   transition: all 0.25s ease;
 }
 .tab.active {
-  background: linear-gradient(90deg, var(--accent-2), var(--accent-3));
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(251, 133, 0, 0.45);
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  color: var(--gold-dark);
+  box-shadow: 0 4px 16px rgba(231, 181, 60, 0.4);
 }
 
 .tab-panel { display: none; animation: fadeIn 0.35s ease; }
@@ -171,13 +192,43 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Hints / info ---------- */
-.hint {
+/* ---------- Access banner (allowlist) ---------- */
+.access-banner {
   margin-top: 14px;
-  padding: 14px 16px;
-  font-size: 0.95rem;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  background: var(--card-glass);
+  border: 1px solid rgba(231, 181, 60, 0.35);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
   text-align: center;
 }
+.email-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 4px 6px 4px 10px;
+}
+.email-pill code { color: var(--gold); font-size: 0.85rem; }
+.btn-copy {
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  font-size: 0.95rem;
+  padding: 3px 5px;
+  border-radius: 7px;
+  transition: background 0.15s ease;
+}
+.btn-copy:hover { background: var(--glass-strong); }
 .scoring-info {
   margin-top: 14px;
   padding: 12px 16px;
@@ -202,7 +253,7 @@ body {
 }
 
 .match-card {
-  background: var(--glass);
+  background: var(--card-glass);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   backdrop-filter: blur(14px);
@@ -212,7 +263,7 @@ body {
   animation: fadeIn 0.4s ease both;
   transition: border-color 0.25s ease;
 }
-.match-card:hover { border-color: rgba(255, 183, 3, 0.45); }
+.match-card:hover { border-color: rgba(231, 181, 60, 0.45); }
 .match-card.locked { opacity: 0.85; }
 
 .match-top {
@@ -224,7 +275,7 @@ body {
   margin-bottom: 12px;
 }
 .match-status { font-weight: 700; }
-.match-status.live { color: var(--accent-3); animation: pulse 1.4s infinite; }
+.match-status.live { color: var(--magenta); animation: pulse 1.4s infinite; }
 .match-status.finished { color: var(--success); }
 .match-status.lockedtxt { color: var(--lock); }
 @keyframes pulse { 50% { opacity: 0.45; } }
@@ -276,10 +327,10 @@ body {
 }
 .pick-btn:hover:not(:disabled) { border-color: var(--accent); }
 .pick-btn.selected {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #2b1700;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--gold-dark);
   border-color: transparent;
-  box-shadow: 0 3px 12px rgba(255, 183, 3, 0.5);
+  box-shadow: 0 3px 12px rgba(231, 181, 60, 0.45);
   transform: scale(1.07);
 }
 .pick-btn:disabled { cursor: not-allowed; opacity: 0.5; }
@@ -316,9 +367,9 @@ body {
   margin-top: 10px;
   text-align: center;
   font-weight: 800;
-  color: var(--accent);
-  background: rgba(255, 183, 3, 0.12);
-  border: 1px solid rgba(255, 183, 3, 0.3);
+  color: var(--gold);
+  background: rgba(231, 181, 60, 0.12);
+  border: 1px solid rgba(231, 181, 60, 0.3);
   border-radius: 10px;
   padding: 9px;
 }
@@ -336,13 +387,13 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--glass);
+  background: var(--card-glass);
   border: 1px solid var(--glass-border);
   border-radius: 14px;
   backdrop-filter: blur(14px);
   animation: fadeIn 0.4s ease both;
 }
-.lb-row.me { border-color: var(--accent); background: rgba(255, 183, 3, 0.1); }
+.lb-row.me { border-color: var(--gold); background: rgba(231, 181, 60, 0.1); }
 .lb-rank { font-size: 1.25rem; font-weight: 900; width: 42px; text-align: center; }
 .lb-row .avatar { width: 38px; height: 38px; }
 .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -402,9 +453,9 @@ body {
   from { opacity: 0; transform: translateY(16px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.toast.success { background: linear-gradient(90deg, #16a34a, #22c55e); }
-.toast.error { background: linear-gradient(90deg, #dc2626, #ef4444); }
-.toast.info { background: linear-gradient(90deg, var(--accent-2), var(--accent-3)); }
+.toast.success { background: linear-gradient(90deg, #00813F, var(--green)); }
+.toast.error { background: linear-gradient(90deg, #B30022, var(--red)); }
+.toast.info { background: linear-gradient(90deg, #00508C, var(--blue)); }
 .toast.out { opacity: 0; transition: opacity 0.4s ease; }
 
 /* ---------- Footer ---------- */
