@@ -1,0 +1,36 @@
+name: Sync World Cup matches & scoring
+
+on:
+  schedule:
+    # Κάθε 30 λεπτά (UTC). Σημ.: το GitHub μπορεί να καθυστερήσει λίγο τα cron.
+    - cron: "*/30 * * * *"
+  # Χειροκίνητο τρέξιμο από το tab Actions (χρήσιμο για το πρώτο γέμισμα της βάσης)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run sync script
+        env:
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/sync.js

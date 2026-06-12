@@ -1,0 +1,82 @@
+rules_version = '2';
+
+// ============================================================
+// Security rules — Μουντιάλ 2026 Προβλέψεις
+// Το GitHub Actions script γράφει με firebase-admin (service
+// account), που ΠΑΡΑΚΑΜΠΤΕΙ τα rules. Άρα ό,τι είναι "write: false"
+// εδώ, γράφεται ΜΟΝΟ από το backend job.
+// ============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Το ματς δεν έχει ξεκινήσει ακόμα (σύγκριση με την ώρα του server)
+    function matchNotStarted(matchId) {
+      return get(/databases/$(database)/documents/matches/$(matchId)).data.utcDate > request.time;
+    }
+
+    function validPick(p) {
+      return p in ['1', 'X', '2'];
+    }
+
+    function validPredictionData() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['userId', 'matchId', 'htPick', 'ftPick', 'scoreHome', 'scoreAway', 'points', 'createdAt'])
+        && d.userId is string
+        && d.matchId is string
+        && validPick(d.htPick)
+        && validPick(d.ftPick)
+        && d.scoreHome is int && d.scoreHome >= 0 && d.scoreHome <= 20
+        && d.scoreAway is int && d.scoreAway >= 0 && d.scoreAway <= 20;
+    }
+
+    // ---------- matches: read-only για όλους ----------
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if false; // μόνο το sync script (admin SDK)
+    }
+
+    // ---------- users ----------
+    match /users/{userId} {
+      allow read: if true; // leaderboard ορατό σε όλους
+
+      // Δημιουργία μόνο του δικού σου doc, με totalPoints αυστηρά 0
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'totalPoints'])
+        && request.resource.data.totalPoints == 0;
+
+      // Ενημέρωση ΜΟΝΟ displayName/photoURL — ποτέ του totalPoints
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL']);
+
+      allow delete: if false;
+    }
+
+    // ---------- predictions ----------
+    match /predictions/{predId} {
+      // Όλοι οι συνδεδεμένοι βλέπουν όλες τις προβλέψεις
+      allow read: if request.auth != null;
+
+      // Δημιουργία: μόνο δική σου, με σωστό doc id, points=null,
+      // και ΜΟΝΟ πριν ξεκινήσει το ματς.
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && predId == request.auth.uid + '_' + request.resource.data.matchId
+        && request.resource.data.points == null
+        && validPredictionData()
+        && matchNotStarted(request.resource.data.matchId);
+
+      // Ενημέρωση: ίδιοι περιορισμοί + απαγορεύεται αλλαγή userId/matchId/points
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.matchId == resource.data.matchId
+        && request.resource.data.points == resource.data.points
+        && validPredictionData()
+        && matchNotStarted(resource.data.matchId);
+
+      allow delete: if false;
+    }
+  }
+}
